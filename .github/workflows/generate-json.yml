@@ -1,0 +1,41 @@
+name: Auto-generate Gallery JSON
+
+on:
+  push:
+    branches:
+      - main  # или master, если ваша ветка называется так
+      
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Generate JSON
+        run: |
+          python -c "
+          import os, json
+          folders = ['OFM', 'Marketing', 'Branding', 'Workflows', 'Animation', 'Landings']
+          base_url = 'https://raw.githubusercontent.com/sherbasergei/shum-gallery/main/'
+          data = {}
+          for folder in folders:
+              data[folder] = []
+              if os.path.exists(folder):
+                  for f in os.listdir(folder):
+                      if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                          data[folder].append(base_url + folder + '/' + f)
+          with open('gallery-data.json', 'w', encoding='utf-8') as out:
+              json.dump(data, out, ensure_ascii=False)
+          "
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add gallery-data.json
+          git commit -m "Auto-update gallery-data.json with new images" || echo "No changes to commit"
+          git push
